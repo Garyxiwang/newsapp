@@ -24,6 +24,7 @@ function Chat() {
   const [inputText, setInputText] = useState("");
   const [isDeepThinking, setIsDeepThinking] = useState(false);
   const [isWebSearching, setIsWebSearching] = useState(false);
+  const [showAttachments, setShowAttachments] = useState(false);
   const flatListRef = React.useRef<FlatList>(null);
 
   const scrollToBottom = () => {
@@ -57,22 +58,34 @@ function Chat() {
 
   const toggleDeepThinking = () => {
     setIsDeepThinking(!isDeepThinking);
-    setIsWebSearching(false); // 关闭另一个选项
   };
 
   const toggleWebSearching = () => {
     setIsWebSearching(!isWebSearching);
-    setIsDeepThinking(false); // 关闭另一个选项
+  };
+
+  const toggleAttachments = () => {
+    setShowAttachments(!showAttachments);
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
-    <View
-      style={[
-        styles.messageContainer,
-        item.isUser ? styles.userMessage : styles.aiMessage,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.text}</Text>
+    <View style={styles.messageContainer}>
+      {!item.isUser && (
+        <View style={styles.avatarContainer}>
+          <MaterialIcons name="android" size={24} color="#007AFF" />
+        </View>
+      )}
+      <View style={[
+        styles.messageBubble,
+        item.isUser ? styles.userBubble : styles.aiBubble,
+      ]}>
+        <Text style={[
+          styles.messageText,
+          item.isUser && styles.userMessageText
+        ]}>
+          {item.text}
+        </Text>
+      </View>
     </View>
   );
 
@@ -93,6 +106,22 @@ function Chat() {
           onLayout={scrollToBottom}
         />
         <View style={styles.inputWrapper}>
+          {showAttachments && (
+            <View style={styles.attachmentBar}>
+              <TouchableOpacity style={styles.attachmentButton}>
+                <MaterialIcons name="camera-alt" size={24} color="#666" />
+                <Text style={styles.attachmentText}>拍照</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachmentButton}>
+                <MaterialIcons name="image" size={24} color="#666" />
+                <Text style={styles.attachmentText}>图片</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.attachmentButton}>
+                <MaterialIcons name="folder" size={24} color="#666" />
+                <Text style={styles.attachmentText}>文件</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <TextInput
             style={styles.input}
             value={inputText}
@@ -137,18 +166,28 @@ function Chat() {
               </TouchableOpacity>
             </View>
             <View style={styles.rightButtons}>
-              <TouchableOpacity style={styles.iconButton}>
-                <MaterialIcons name="attach-file" size={24} color="#666" />
+              <TouchableOpacity 
+                style={[
+                  styles.iconButton,
+                  showAttachments && styles.iconButtonActive
+                ]}
+                onPress={toggleAttachments}
+              >
+                <MaterialIcons 
+                  name="attach-file" 
+                  size={22} 
+                  color={showAttachments ? "#007AFF" : "#666"} 
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.iconButton, styles.sendButton]}
+                style={styles.iconButton}
                 onPress={sendMessage}
                 disabled={!inputText.trim()}
               >
                 <MaterialIcons 
                   name="send" 
-                  size={24} 
-                  color={inputText.trim() ? "#fff" : "#rgba(255,255,255,0.5)"} 
+                  size={22} 
+                  color={inputText.trim() ? "#007AFF" : "#666"} 
                 />
               </TouchableOpacity>
             </View>
@@ -166,41 +205,58 @@ const styles = StyleSheet.create({
   },
   chatList: {
     flex: 1,
-    padding: 10,
-    paddingBottom: 20,
+    paddingVertical: 15,
   },
   messageContainer: {
-    maxWidth: "80%",
+    flexDirection: "row",
     marginVertical: 5,
-    padding: 10,
-    borderRadius: 12,
+    paddingHorizontal: 10,
   },
-  userMessage: {
+  avatarContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
+  },
+  messageBubble: {
+    maxWidth: "70%",
+    padding: 12,
+    borderRadius: 18,
+  },
+  userBubble: {
     alignSelf: "flex-end",
     backgroundColor: "#007AFF",
+    marginLeft: "auto",
   },
-  aiMessage: {
-    alignSelf: "flex-start",
-    backgroundColor: "#E5E5EA",
+  aiBubble: {
+    backgroundColor: "#f0f0f0",
   },
   messageText: {
-    fontSize: 16,
+    fontSize: 15,
+    lineHeight: 20,
     color: "#000",
+  },
+  userMessageText: {
+    color: "#fff",
   },
   inputWrapper: {
     backgroundColor: "#fff",
-    borderTopWidth: 1,
+    borderTopWidth: 0.5,
     borderTopColor: "#e0e0e0",
     padding: 10,
   },
   input: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f5f5f5",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 8,
-    fontSize: 16,
-    minHeight: 40,
+    fontSize: 15,
+    minHeight: 36,
     maxHeight: 100,
+    textAlignVertical: "center",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -213,11 +269,14 @@ const styles = StyleSheet.create({
   },
   rightButtons: {
     flexDirection: "row",
-    gap: 8,
+    gap: 12,
+    paddingHorizontal: 4,
   },
   actionButton: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 16,
     backgroundColor: "#f0f0f0",
   },
@@ -225,22 +284,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#666",
   },
   actionButtonTextActive: {
     color: "#fff",
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 20,
-    backgroundColor: "#f0f0f0",
   },
-  sendButton: {
-    backgroundColor: "#007AFF",
+  attachmentBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  attachmentButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  attachmentText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  iconButtonActive: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
   },
 });
 

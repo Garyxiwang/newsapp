@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,9 @@ import {
   SafeAreaView,
   Image,
   ListRenderItem,
+  ActivityIndicator,
+  TouchableOpacity,
+  Platform,
 } from "react-native";
 
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
@@ -175,94 +178,149 @@ const convertLikeNum = (num: number) => {
   return num;
 };
 
-const renderItem: ListRenderItem<ItemProps> = ({ item }) => {
-  const { image, avatar, title, author, likeNum } = item; // 使用 item 直接解构
-  return (
-    <View style={styles.item}>
-      <Image src={image} style={styles.img} />
-      <Text numberOfLines={2} style={styles.title}>
-        {title}
-      </Text>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image
-            src={avatar}
-            style={{ width: 20, height: 20, borderRadius: 15 }}
-          />
-          <Text numberOfLines={1} style={styles.author}>
-            {author}
-          </Text>
-        </View>
+const onItemPress = (item: ItemProps) => {
+  // 处理点击事件
+};
 
-        <View style={styles.like}>
-          <FontAwesome5
-            name="heart"
-            size={16}
-            color="#333"
-            light
-            style={{ display: "block", marginRight: 5 }}
-          />
-          <Text>{likeNum !== undefined ? convertLikeNum(likeNum) : 0}</Text>
-        </View>
+const renderItem: ListRenderItem<ItemProps> = ({ item }) => (
+  <TouchableOpacity 
+    style={styles.item}
+    onPress={() => onItemPress(item)}
+    activeOpacity={0.7}
+  >
+    <Image
+      source={{ uri: item.image }}
+      style={styles.img}
+      resizeMode="cover"
+      progressiveRenderingEnabled={true}
+    />
+    <Text numberOfLines={2} style={styles.title}>
+      {item.title}
+    </Text>
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Image
+          src={item.avatar}
+          style={{ width: 20, height: 20, borderRadius: 15 }}
+        />
+        <Text numberOfLines={1} style={styles.author}>
+          {item.author}
+        </Text>
+      </View>
+
+      <View style={styles.like}>
+        <FontAwesome5
+          name="heart"
+          size={16}
+          color="#333"
+          light
+          style={{ display: "block", marginRight: 5 }}
+        />
+        <Text style={styles.likeText}>{item.likeNum !== undefined ? convertLikeNum(item.likeNum) : 0}</Text>
       </View>
     </View>
-  );
-};
+  </TouchableOpacity>
+);
+
 function RedBook() {
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // 刷新数据
+    setRefreshing(false);
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <FlatList data={data} numColumns={2} renderItem={renderItem}></FlatList>
+      <FlatList
+        data={data}
+        numColumns={2}
+        renderItem={renderItem}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        ListFooterComponent={loading ? <ActivityIndicator /> : null}
+        contentContainerStyle={styles.listContainer}
+        columnWrapperStyle={styles.columnWrapper}
+        showsVerticalScrollIndicator={false}
+      />
     </SafeAreaView>
   );
 }
+
 export default RedBook;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: StatusBar.currentHeight || 0,
-    justifyContent: "center", // 垂直居中
-    alignItems: "center", // 水平居中
+    backgroundColor: "#f5f5f5",
+  },
+  listContainer: {
+    paddingHorizontal: 8,
+    paddingTop: 8,
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
   },
   item: {
     backgroundColor: "#fff",
-    padding: 5,
-    marginVertical: 2,
+    width: '48%',
+    marginBottom: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  img: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 3/4,
   },
   title: {
     fontSize: 14,
-    padding: 5,
-    width: 180,
-  },
-  img: {
-    width: "100%",
-    height: 280,
-    aspectRatio: 200 / 300,
-    borderRadius: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+    color: '#333',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   content: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 5,
-    color: "#007aff",
     alignItems: "center",
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   header: {
-    display: "flex",
     flexDirection: "row",
-    justifyContent: "flex-start",
     alignItems: "center",
+    flex: 1,
   },
   author: {
-    width: 90,
-    marginLeft: 3,
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 6,
+    flex: 1,
   },
   like: {
-    display: "flex",
     flexDirection: "row",
-    justifyContent: "flex-start",
     alignItems: "center",
+  },
+  likeText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -11,8 +11,10 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Platform,
+  ScrollView,
+  RefreshControl,
+  Dimensions,
 } from "react-native";
-
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 
 const data = [
@@ -169,83 +171,99 @@ type ItemProps = {
   author: string;
   likeNum: number;
   avatar: string;
+  isLiked?: boolean;
 };
 
 const convertLikeNum = (num: number) => {
-  if (num > 10000) {
-    return `${num / 10000}w`;
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + 'w';  // 保持一位小数
   }
-  return num;
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k';   // 千位显示为k
+  }
+  return num.toString();  // 转为字符串确保一致的渲染
 };
 
 const onItemPress = (item: ItemProps) => {
   // 处理点击事件
 };
 
-const renderItem: ListRenderItem<ItemProps> = ({ item }) => (
-  <TouchableOpacity 
-    style={styles.item}
-    onPress={() => onItemPress(item)}
-    activeOpacity={0.7}
-  >
-    <Image
-      source={{ uri: item.image }}
-      style={styles.img}
-      resizeMode="cover"
-      progressiveRenderingEnabled={true}
-    />
-    <Text numberOfLines={2} style={styles.title}>
-      {item.title}
-    </Text>
-    <View style={styles.content}>
-      <View style={styles.header}>
-        <Image
-          src={item.avatar}
-          style={{ width: 20, height: 20, borderRadius: 15 }}
-        />
-        <Text numberOfLines={1} style={styles.author}>
-          {item.author}
-        </Text>
-      </View>
-
-      <View style={styles.like}>
-        <FontAwesome5
-          name="heart"
-          size={16}
-          color="#333"
-          light
-          style={{ display: "block", marginRight: 5 }}
-        />
-        <Text style={styles.likeText}>{item.likeNum !== undefined ? convertLikeNum(item.likeNum) : 0}</Text>
-      </View>
-    </View>
-  </TouchableOpacity>
-);
+// 调整预定义高度的范围，使其更合理
+const IMAGE_HEIGHTS = [180, 200, 220, 240];  // 减小高度差异
 
 function RedBook() {
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    // 刷新数据
-    setRefreshing(false);
+  const [leftData, setLeftData] = useState<ItemProps[]>([]);
+  const [rightData, setRightData] = useState<ItemProps[]>([]);
+
+  useEffect(() => {
+    const left: ItemProps[] = [];
+    const right: ItemProps[] = [];
+    
+    data.forEach((item, index) => {
+      if (index % 2 === 0) {
+        left.push(item);
+      } else {
+        right.push(item);
+      }
+    });
+
+    setLeftData(left);
+    setRightData(right);
   }, []);
+
+  const renderColumn = (items: ItemProps[]) => (
+    <View style={styles.column}>
+      {items.map((item, index) => (
+        <TouchableOpacity 
+          key={index}
+          style={styles.item}
+          onPress={() => onItemPress(item)}
+          activeOpacity={0.7}
+        >
+          <Image
+            source={{ uri: item.image }}
+            style={styles.img}
+            resizeMode="cover"
+          />
+          <Text numberOfLines={2} style={styles.title}>
+            {item.title}
+          </Text>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Image
+                source={{ uri: item.avatar }}
+                style={styles.avatar}
+              />
+              <Text numberOfLines={1} style={styles.author}>
+                {item.author}
+              </Text>
+            </View>
+            <View style={styles.like}>
+              <FontAwesome5
+                name="heart"
+                size={14}
+                color="#666"
+                style={styles.likeIcon}
+              />
+              <Text style={styles.likeText}>
+                {convertLikeNum(item.likeNum)}
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <FlatList
-        data={data}
-        numColumns={2}
-        renderItem={renderItem}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        ListFooterComponent={loading ? <ActivityIndicator /> : null}
-        contentContainerStyle={styles.listContainer}
-        columnWrapperStyle={styles.columnWrapper}
-        showsVerticalScrollIndicator={false}
-      />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.waterfall}>
+          {renderColumn(leftData)}
+          {renderColumn(rightData)}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -257,70 +275,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
-  listContainer: {
+  waterfall: {
+    flexDirection: 'row',
     paddingHorizontal: 8,
     paddingTop: 8,
   },
-  columnWrapper: {
-    justifyContent: "space-between",
+  column: {
+    flex: 1,
+    marginHorizontal: 4,
   },
   item: {
     backgroundColor: "#fff",
-    width: '48%',
-    marginBottom: 12,
+    marginVertical: 2,
     borderRadius: 8,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
   },
   img: {
-    width: '100%',
-    height: undefined,
-    aspectRatio: 3/4,
+    width: "100%",
+    aspectRatio: 200 / 300,
+    borderRadius: 8,
   },
   title: {
     fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 20,
-    color: '#333',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   content: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
+  },
+  avatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 15,
   },
   author: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 6,
-    flex: 1,
+    width: 90,
+    marginLeft: 3,
   },
   like: {
     flexDirection: "row",
     alignItems: "center",
   },
+  likeIcon: {
+    marginRight: 4,
+  },
   likeText: {
     fontSize: 12,
     color: '#666',
-    marginLeft: 4,
   },
 });

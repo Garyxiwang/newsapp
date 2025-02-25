@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { chatAPI } from '../services/api';
 import {
   StyleSheet,
@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -35,15 +36,25 @@ function Chat() {
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const flatListRef = React.useRef<FlatList>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [messages]);
 
   const scrollToBottom = () => {
-    if (flatListRef.current && messages.length > 0) {
+    if (flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: true });
     }
   };
 
   const sendMessage = async () => {
-    if (inputText.trim() === "") return;
+    if (inputText.trim() === "" || isLoading) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -51,26 +62,35 @@ function Chat() {
       isUser: true,
     };
 
-    setMessages([...messages, newMessage]);
+    const loadingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      text: "思考中...",
+      isUser: false,
+    };
+
+    setMessages([...messages, newMessage, loadingMessage]);
+    setLoadingMessageId(loadingMessage.id);
     setInputText("");
+    setIsLoading(true);
 
     try {
       const { data } = await chatAPI.sendMessage(inputText, isDeepThinking, isWebSearching);
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: data.response,
-        isUser: false,
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessage.id 
+          ? { ...msg, text: data.response }
+          : msg
+      ));
     } catch (error) {
       console.error('Error:', error);
       const apiError = error as ApiError;
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。",
-        isUser: false,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessage.id 
+          ? { ...msg, text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。" }
+          : msg
+      ));
+    } finally {
+      setIsLoading(false);
+      setLoadingMessageId(null);
     }
   };
 
@@ -103,6 +123,13 @@ function Chat() {
         ]}>
           {item.text}
         </Text>
+        {loadingMessageId === item.id && (
+          <ActivityIndicator 
+            size="small" 
+            color={item.isUser ? "#fff" : "#666"} 
+            style={styles.messageLoader}
+          />
+        )}
       </View>
     </View>
   );
@@ -122,6 +149,10 @@ function Chat() {
           style={styles.chatList}
           onContentSizeChange={scrollToBottom}
           onLayout={scrollToBottom}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10,
+          }}
         />
         <View style={styles.inputWrapper}>
           {showAttachments && (
@@ -334,6 +365,10 @@ const styles = StyleSheet.create({
   iconButtonActive: {
     backgroundColor: '#f0f0f0',
     borderRadius: 16,
+  },
+  messageLoader: {
+    marginLeft: 10,
+    marginTop: 5,
   },
 });
 

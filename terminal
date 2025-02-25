@@ -1,0 +1,19 @@
+cd server
+# 初始化Node.js项目
+npm init -y 
+# 安装所有依赖
+npm install express cors dotenv @langchain/core @langchain/openai @langchain/community
+npm install -D typescript @types/express @types/cors @types/node ts-node nodemon
+npm install zod
+# 初始化TypeScript配置
+npx tsc --init
+# 修改package.json添加运行脚本
+npm pkg set scripts.dev="nodemon --exec ts-node src/index.ts"
+npm pkg set scripts.build="tsc"
+npm pkg set scripts.start="node dist/index.js"
+# 运行开发服务器
+npm run dev
+
+# 清理Python文件
+rm server/main.py
+rm -rf server/venv

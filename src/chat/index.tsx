@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { chatAPI } from '../services/api';
 import {
   StyleSheet,
   Text,
@@ -19,6 +20,14 @@ interface Message {
   isUser: boolean;
 }
 
+interface ApiError {
+  response?: {
+    data?: {
+      detail?: string;
+    };
+  };
+}
+
 function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
@@ -33,7 +42,7 @@ function Chat() {
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (inputText.trim() === "") return;
 
     const newMessage: Message = {
@@ -45,15 +54,24 @@ function Chat() {
     setMessages([...messages, newMessage]);
     setInputText("");
 
-    // 模拟AI回复
-    setTimeout(() => {
+    try {
+      const { data } = await chatAPI.sendMessage(inputText, isDeepThinking, isWebSearching);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "这是一个模拟的AI回复消息",
+        text: data.response,
         isUser: false,
       };
       setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error:', error);
+      const apiError = error as ApiError;
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。",
+        isUser: false,
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
   };
 
   const toggleDeepThinking = () => {

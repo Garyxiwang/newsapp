@@ -12,7 +12,6 @@ const HomeTabs = () => {
     <Tab.Navigator>
       <Tab.Screen name="发现" component={RedBook} />
       <Tab.Screen name="对话" component={Chat} />
-      <Tab.Screen name="我" component={Chat} />
     </Tab.Navigator>
   );
 };
@@ -29,9 +28,7 @@ function App() {
               iconName = focused ? "home" : "home-outline";
             } else if (route.name === "对话") {
               iconName = focused ? "chatbox" : "chatbox-outline";
-            } else if (route.name === "我") {
-              iconName = focused ? "person" : "person-outline";
-            }
+            } 
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
@@ -41,7 +38,6 @@ function App() {
       >
         <Tab.Screen name="新闻" component={RedBook} />
         <Tab.Screen name="对话" component={Chat} />
-        <Tab.Screen name="我" component={Chat} />
       </Tab.Navigator>
     </NavigationContainer>
   );

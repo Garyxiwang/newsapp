@@ -201,9 +201,9 @@ function RedBook() {
     
     data.forEach((item, index) => {
       if (index % 2 === 0) {
-        left.push(item);
+        left.push({...item, isLiked: false});  // 添加初始点赞状态
       } else {
-        right.push(item);
+        right.push({...item, isLiked: false});
       }
     });
 
@@ -211,7 +211,32 @@ function RedBook() {
     setRightData(right);
   }, []);
 
-  const renderColumn = (items: ItemProps[]) => (
+  // 处理点赞事件
+  const handleLike = (item: ItemProps, isLeft: boolean) => {
+    if (isLeft) {
+      setLeftData(leftData.map(dataItem => 
+        dataItem === item 
+          ? { 
+              ...dataItem, 
+              isLiked: !dataItem.isLiked,
+              likeNum: dataItem.isLiked ? dataItem.likeNum - 1 : dataItem.likeNum + 1 
+            }
+          : dataItem
+      ));
+    } else {
+      setRightData(rightData.map(dataItem => 
+        dataItem === item 
+          ? { 
+              ...dataItem, 
+              isLiked: !dataItem.isLiked,
+              likeNum: dataItem.isLiked ? dataItem.likeNum - 1 : dataItem.likeNum + 1 
+            }
+          : dataItem
+      ));
+    }
+  };
+
+  const renderColumn = (items: ItemProps[], isLeft: boolean) => (
     <View style={styles.column}>
       {items.map((item, index) => (
         <TouchableOpacity 
@@ -238,17 +263,25 @@ function RedBook() {
                 {item.author}
               </Text>
             </View>
-            <View style={styles.like}>
+            <TouchableOpacity 
+              style={styles.like}
+              onPress={() => handleLike(item, isLeft)}
+              activeOpacity={0.7}
+            >
               <FontAwesome5
                 name="heart"
                 size={14}
-                color="#666"
+                color={item.isLiked ? "#ff2442" : "#666"}
+                solid={item.isLiked}
                 style={styles.likeIcon}
               />
-              <Text style={styles.likeText}>
+              <Text style={[
+                styles.likeText,
+                item.isLiked && styles.likeTextActive
+              ]}>
                 {convertLikeNum(item.likeNum)}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       ))}
@@ -260,8 +293,8 @@ function RedBook() {
       <StatusBar barStyle="dark-content" />
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.waterfall}>
-          {renderColumn(leftData)}
-          {renderColumn(rightData)}
+          {renderColumn(leftData, true)}
+          {renderColumn(rightData, false)}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -330,5 +363,8 @@ const styles = StyleSheet.create({
   likeText: {
     fontSize: 12,
     color: '#666',
+  },
+  likeTextActive: {
+    color: '#ff2442',
   },
 });

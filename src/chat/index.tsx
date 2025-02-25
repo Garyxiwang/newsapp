@@ -144,7 +144,7 @@ function Chat() {
             style={styles.input}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="给小i发送消息..."
+            placeholder="给小d发送消息..."
             multiline
             onFocus={scrollToBottom}
           />

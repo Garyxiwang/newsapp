@@ -12,13 +12,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRoute, RouteProp } from '@react-navigation/native';
 
 interface Message {
   id: string;
   text: string;
   isUser: boolean;
+  imageUrl?: string;
 }
 
 interface ApiError {
@@ -29,15 +32,45 @@ interface ApiError {
   };
 }
 
+// 定义路由参数类型
+type ChatRouteParams = {
+  question?: string;
+  imageUrl?: string;
+  title?: string;
+  author?: string;
+};
+
 function Chat() {
+  const route = useRoute<RouteProp<Record<string, ChatRouteParams>, string>>();
+  const { question, imageUrl, title, author } = route.params || {};
+  
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState(question || "");
   const [isDeepThinking, setIsDeepThinking] = useState(false);
   const [isWebSearching, setIsWebSearching] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
   const flatListRef = React.useRef<FlatList>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessageId, setLoadingMessageId] = useState<string | null>(null);
+
+  // 如果有传入的问题，自动发送
+  useEffect(() => {
+    if (question && imageUrl) {
+      const initialMessage: Message = {
+        id: Date.now().toString(),
+        text: question,
+        isUser: true,
+        imageUrl: imageUrl
+      };
+      console.log(initialMessage);
+      setMessages([initialMessage]);
+      
+      // 延迟一点时间后自动发送消息
+      setTimeout(() => {
+        sendMessageWithImage(question, imageUrl);
+      }, 500);
+    }
+  }, [route.params]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -50,6 +83,43 @@ function Chat() {
   const scrollToBottom = () => {
     if (flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: true });
+    }
+  };
+
+  // 添加带图片发送消息的方法
+  const sendMessageWithImage = async (text: string, imgUrl: string) => {
+    if (text.trim() === "" || isLoading) return;
+    console.log('1', 1)
+    const loadingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      text: "思考中...",
+      isUser: false,
+    };
+
+    setMessages(prev => [...prev, loadingMessage]);
+    setLoadingMessageId(loadingMessage.id);
+    setInputText("");
+    setIsLoading(true);
+
+    try {
+      // 这里可以修改API调用，传入图片URL
+      const { data } = await chatAPI.sendMessage(text, isDeepThinking, isWebSearching);
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessage.id 
+          ? { ...msg, text: data.response }
+          : msg
+      ));
+    } catch (error) {
+      console.error('Error:', error);
+      const apiError = error as ApiError;
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessage.id 
+          ? { ...msg, text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。" }
+          : msg
+      ));
+    } finally {
+      setIsLoading(false);
+      setLoadingMessageId(null);
     }
   };
 
@@ -117,6 +187,13 @@ function Chat() {
         styles.messageBubble,
         item.isUser ? styles.userBubble : styles.aiBubble,
       ]}>
+        {item.imageUrl && (
+          <Image 
+            source={{ uri: item.imageUrl }} 
+            style={styles.messageImage}
+            resizeMode="cover"
+          />
+        )}
         <Text style={[
           styles.messageText,
           item.isUser && styles.userMessageText
@@ -369,6 +446,12 @@ const styles = StyleSheet.create({
   messageLoader: {
     marginLeft: 10,
     marginTop: 5,
+  },
+  messageImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 8,
   },
 });
 

@@ -16,6 +16,7 @@ import {
   Dimensions,
 } from "react-native";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
 
 const data = [
   {
@@ -176,34 +177,39 @@ type ItemProps = {
 
 const convertLikeNum = (num: number) => {
   if (num >= 10000) {
-    return (num / 10000).toFixed(1) + 'w';  // 保持一位小数
+    return (num / 10000).toFixed(1) + "w"; // 保持一位小数
   }
   if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k';   // 千位显示为k
+    return (num / 1000).toFixed(1) + "k"; // 千位显示为k
   }
-  return num.toString();  // 转为字符串确保一致的渲染
+  return num.toString(); // 转为字符串确保一致的渲染
 };
 
-const onItemPress = (item: ItemProps) => {
-  // 处理点击事件
+// 定义导航类型
+type RootStackParamList = {
+  chat: {
+    question: string;
+    imageUrl: string;
+    title: string;
+    author: string;
+  };
+  // 其他屏幕...
 };
-
-// 调整预定义高度的范围，使其更合理
-const IMAGE_HEIGHTS = [180, 200, 220, 240];  // 减小高度差异
 
 function RedBook() {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [leftData, setLeftData] = useState<ItemProps[]>([]);
   const [rightData, setRightData] = useState<ItemProps[]>([]);
 
   useEffect(() => {
     const left: ItemProps[] = [];
     const right: ItemProps[] = [];
-    
+
     data.forEach((item, index) => {
       if (index % 2 === 0) {
-        left.push({...item, isLiked: false});  // 添加初始点赞状态
+        left.push({ ...item, isLiked: false }); // 添加初始点赞状态
       } else {
-        right.push({...item, isLiked: false});
+        right.push({ ...item, isLiked: false });
       }
     });
 
@@ -214,35 +220,55 @@ function RedBook() {
   // 处理点赞事件
   const handleLike = (item: ItemProps, isLeft: boolean) => {
     if (isLeft) {
-      setLeftData(leftData.map(dataItem => 
-        dataItem === item 
-          ? { 
-              ...dataItem, 
-              isLiked: !dataItem.isLiked,
-              likeNum: dataItem.isLiked ? dataItem.likeNum - 1 : dataItem.likeNum + 1 
-            }
-          : dataItem
-      ));
+      setLeftData(
+        leftData.map((dataItem) =>
+          dataItem === item
+            ? {
+                ...dataItem,
+                isLiked: !dataItem.isLiked,
+                likeNum: dataItem.isLiked
+                  ? dataItem.likeNum - 1
+                  : dataItem.likeNum + 1,
+              }
+            : dataItem
+        )
+      );
     } else {
-      setRightData(rightData.map(dataItem => 
-        dataItem === item 
-          ? { 
-              ...dataItem, 
-              isLiked: !dataItem.isLiked,
-              likeNum: dataItem.isLiked ? dataItem.likeNum - 1 : dataItem.likeNum + 1 
-            }
-          : dataItem
-      ));
+      setRightData(
+        rightData.map((dataItem) =>
+          dataItem === item
+            ? {
+                ...dataItem,
+                isLiked: !dataItem.isLiked,
+                likeNum: dataItem.isLiked
+                  ? dataItem.likeNum - 1
+                  : dataItem.likeNum + 1,
+              }
+            : dataItem
+        )
+      );
     }
+  };
+
+  // 更新点击处理函数
+  const handleItemPress = (item: ItemProps) => {
+    console.log('item', item)
+    // 确保使用正确的导航路径
+    navigation.navigate("chat", {
+      question: `我想了解关于"${item.title}"的信息，这是由${item.author}发布的内容。`,
+      imageUrl: item.image,
+      title: item.title,
+      author: item.author,
+    });
   };
 
   const renderColumn = (items: ItemProps[], isLeft: boolean) => (
     <View style={styles.column}>
       {items.map((item, index) => (
-        <TouchableOpacity 
+        <TouchableOpacity
           key={index}
           style={styles.item}
-          onPress={() => onItemPress(item)}
+          onPress={() => handleItemPress(item)}
           activeOpacity={0.7}
         >
           <Image
@@ -255,15 +281,12 @@ function RedBook() {
           </Text>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Image
-                source={{ uri: item.avatar }}
-                style={styles.avatar}
-              />
+              <Image source={{ uri: item.avatar }} style={styles.avatar} />
               <Text numberOfLines={1} style={styles.author}>
                 {item.author}
               </Text>
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.like}
               onPress={() => handleLike(item, isLeft)}
               activeOpacity={0.7}
@@ -275,10 +298,9 @@ function RedBook() {
                 solid={item.isLiked}
                 style={styles.likeIcon}
               />
-              <Text style={[
-                styles.likeText,
-                item.isLiked && styles.likeTextActive
-              ]}>
+              <Text
+                style={[styles.likeText, item.isLiked && styles.likeTextActive]}
+              >
                 {convertLikeNum(item.likeNum)}
               </Text>
             </TouchableOpacity>
@@ -309,7 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   waterfall: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 8,
     paddingTop: 8,
   },
@@ -321,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginVertical: 2,
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   img: {
     width: "100%",
@@ -362,9 +384,9 @@ const styles = StyleSheet.create({
   },
   likeText: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
   },
   likeTextActive: {
-    color: '#ff2442',
+    color: "#ff2442",
   },
 });

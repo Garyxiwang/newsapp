@@ -7,6 +7,7 @@ import RedBook from "./src/redbook";
 
 const Tab = createBottomTabNavigator();
 
+// TODO: 底部导航样式优化，去掉图标
 function App() {
   return (
     <NavigationContainer>

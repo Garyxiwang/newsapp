@@ -252,7 +252,6 @@ function RedBook() {
 
   // 更新点击处理函数
   const handleItemPress = (item: ItemProps) => {
-    console.log('item', item)
     // 确保使用正确的导航路径
     navigation.navigate("chat", {
       question: `我想了解关于"${item.title}"的信息，这是由${item.author}发布的内容。`,

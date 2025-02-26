@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { ChatOpenAI } from "@langchain/openai";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { BufferMemory } from "langchain/memory";
+import { ChatMessage } from "./types/chat";
 
 dotenv.config();
 
@@ -26,12 +27,6 @@ const memory = new BufferMemory({
   returnMessages: true,
   memoryKey: "history",
 });
-
-interface ChatMessage {
-  text: string;
-  isDeepThinking: boolean;
-  isWebSearching: boolean;
-}
 
 app.post("/chat", async (req, res) => {
   try {

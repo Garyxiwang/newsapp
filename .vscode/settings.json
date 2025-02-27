@@ -1,6 +1,7 @@
 {
   "cSpell.words": [
     "deepseek",
+    "dotenv",
     "langchain",
     "langserve",
     "venv"

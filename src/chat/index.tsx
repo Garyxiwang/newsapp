@@ -14,8 +14,8 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { MaterialIcons } from '@expo/vector-icons';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 
 interface Message {
   id: string;
@@ -42,6 +42,7 @@ type ChatRouteParams = {
 
 function Chat() {
   const route = useRoute<RouteProp<Record<string, ChatRouteParams>, string>>();
+  const navigation = useNavigation<any>();
   const { question, imageUrl, title, author } = route.params || {};
   
   const [messages, setMessages] = useState<Message[]>([]);
@@ -55,20 +56,25 @@ function Chat() {
 
   // 如果有传入的问题，自动发送
   useEffect(() => {
-    if (question && imageUrl) {
+    if (question) {
+      // 创建初始用户消息
       const initialMessage: Message = {
         id: Date.now().toString(),
         text: question,
         isUser: true,
-        imageUrl: imageUrl
       };
-      console.log(initialMessage);
-      setMessages([initialMessage]);
+      
+      // 如果有图片，添加到消息中
+      if (imageUrl) {
+        initialMessage.imageUrl = imageUrl;
+      }
+      
+      // setMessages([initialMessage]);
       
       // 延迟一点时间后自动发送消息
-      setTimeout(() => {
-        sendMessageWithImage(question, imageUrl);
-      }, 500);
+      // setTimeout(() => {
+      //   handleAutoSend(question);
+      // }, 500);
     }
   }, [route.params]);
 
@@ -89,7 +95,7 @@ function Chat() {
   // 添加带图片发送消息的方法
   const sendMessageWithImage = async (text: string, imgUrl: string) => {
     if (text.trim() === "" || isLoading) return;
-    console.log('1', 1)
+    
     const loadingMessage: Message = {
       id: (Date.now() + 1).toString(),
       text: "思考中...",
@@ -123,7 +129,52 @@ function Chat() {
     }
   };
 
-  const sendMessage = async () => {
+  // 处理自动发送消息
+  const handleAutoSend = (text: string) => {
+    if (text.trim() === "" || isLoading) return;
+    
+    const loadingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      text: "思考中...",
+      isUser: false,
+    };
+
+    setMessages(prev => [...prev, loadingMessage]);
+    setLoadingMessageId(loadingMessage.id);
+    setIsLoading(true);
+
+    try {
+      // 发送消息到API
+      chatAPI.sendMessage(text, isDeepThinking, isWebSearching)
+        .then(({ data }) => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? { ...msg, text: data.response }
+              : msg
+          ));
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+          const apiError = error as ApiError;
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id 
+              ? { ...msg, text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。" }
+              : msg
+          ));
+        })
+        .finally(() => {
+          setIsLoading(false);
+          setLoadingMessageId(null);
+        });
+    } catch (error) {
+      console.error('Error:', error);
+      setIsLoading(false);
+      setLoadingMessageId(null);
+    }
+  };
+
+  // 处理发送按钮点击
+  const handleSendPress = () => {
     if (inputText.trim() === "" || isLoading) return;
 
     const newMessage: Message = {
@@ -132,36 +183,11 @@ function Chat() {
       isUser: true,
     };
 
-    const loadingMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      text: "思考中...",
-      isUser: false,
-    };
-
-    setMessages([...messages, newMessage, loadingMessage]);
-    setLoadingMessageId(loadingMessage.id);
+    setMessages([...messages, newMessage]);
+    const currentText = inputText;
     setInputText("");
-    setIsLoading(true);
-
-    try {
-      const { data } = await chatAPI.sendMessage(inputText, isDeepThinking, isWebSearching);
-      setMessages(prev => prev.map(msg => 
-        msg.id === loadingMessage.id 
-          ? { ...msg, text: data.response }
-          : msg
-      ));
-    } catch (error) {
-      console.error('Error:', error);
-      const apiError = error as ApiError;
-      setMessages(prev => prev.map(msg => 
-        msg.id === loadingMessage.id 
-          ? { ...msg, text: apiError.response?.data?.detail || "抱歉，发生了一些错误，请稍后再试。" }
-          : msg
-      ));
-    } finally {
-      setIsLoading(false);
-      setLoadingMessageId(null);
-    }
+    
+    handleAutoSend(currentText);
   };
 
   const toggleDeepThinking = () => {
@@ -211,11 +237,27 @@ function Chat() {
     </View>
   );
 
+  // 处理返回按钮点击
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* 顶部导航栏 */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#007AFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {title ? title : "聊天"}
+        </Text>
+        <View style={styles.headerRight} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.container}
+        style={styles.keyboardContainer}
         keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <FlatList
@@ -307,7 +349,7 @@ function Chat() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={sendMessage}
+                onPress={handleSendPress}
                 disabled={!inputText.trim()}
               >
                 <MaterialIcons 
@@ -327,11 +369,39 @@ function Chat() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f3f1eb",
+  },
+  keyboardContainer: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 10,
+    height: 60,
+    backgroundColor: "#f3f1eb",
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40, // 保持左右对称
   },
   chatList: {
     flex: 1,
     paddingVertical: 15,
+    paddingHorizontal: 10,
   },
   messageContainer: {
     flexDirection: "row",

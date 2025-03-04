@@ -1,19 +1,13 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
   View,
-  FlatList,
   StatusBar,
   SafeAreaView,
   Image,
-  ListRenderItem,
-  ActivityIndicator,
   TouchableOpacity,
-  Platform,
   ScrollView,
-  RefreshControl,
-  Dimensions,
 } from "react-native";
 import FontAwesome5 from "react-native-vector-icons/FontAwesome5";
 import { useNavigation, NavigationProp } from "@react-navigation/native";

@@ -1,4 +1,4 @@
-# redbook
+# 智讯通 —— 基于 LLM 的全平台信息智能问答中枢
 
 ## React Native 项目
 
@@ -6,30 +6,14 @@
 2. 运行 pnpm run ios 或 pnpm run android  会启动模拟器  Version 16.0 (1038)
 3. 控制台输入 r 会刷新页面
 
-## 常用命令
-› Press h │ show help screen
+### 解决信息过载痛点
 
-› Press q │ quit
+用户无需手动浏览多个平台，通过订阅+智能问答快速定位关键信息
 
-› Press s │ switch to development build
+例：订阅"AI新闻"后可直接提问："本周大模型领域有哪些重要突破？"
 
+### 知识管理效率革命
 
-› Press a │ open Android
+将被动接收信息升级为主动知识提取
 
-› Press i │ open iOS simulator
-
-› Press w │ open web
-
-› Press j │ open debugger
-
-› Press r │ reload app
-
-› Press m │ toggle menu
-
-› shift+m │ more tools
-
-› Press o │ open project code in your editor
-
-
-› Press ? │ show all commands
-
+支持跨来源内容关联（如对比不同媒体对同一事件的报道）
